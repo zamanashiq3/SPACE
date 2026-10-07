@@ -246,8 +246,15 @@ def detect_population_events(lfp: h5py.Dataset, idx: np.ndarray, fs: float, t0: 
                 n_defl_per_el=n_defl_per_el, window_clipped=(w0c != w0 or w1c != w1))
 
 
-def select_events(runs: List[dict], percentiles=PERCENTILES) -> List[dict]:
-    """Runs closest in size to the 20/50/80th percentiles (ties -> earlier run)."""
+def select_events(runs: List[dict], percentiles=PERCENTILES, min_size: int = 1) -> List[dict]:
+    """Runs closest in size to the 20/50/80th percentiles (ties -> earlier run).
+
+    ``min_size`` drops runs with fewer deflections before the percentiles are taken. The Methods
+    do not state a minimum (default 1); with real data, isolated single-electrode minima can form
+    many size-1 runs that dominate the lower percentiles, so set e.g. ``--min_event_size 10``
+    if your events were defined on population-scale runs only.
+    """
+    runs = [r for r in runs if r["size"] >= int(min_size)]
     if not runs:
         return []
     sizes = np.array([r["size"] for r in runs], dtype=float)
@@ -353,7 +360,7 @@ def process_recording(h5_path: Path, group: str, args, mask_dir: Path, roi_dir: 
 
         t0, _ = find_t0_chunked(csd, idx_inner, fs)
         det = detect_population_events(lfp, idx_mask, fs, t0)
-        events = select_events(det["runs"])
+        events = select_events(det["runs"], min_size=args.min_event_size)
         print(f"       t0 = {t0} samples ({t0 * 1000 / fs:.1f} ms); {len(det['runs'])} population events; "
               f"{det['n_defl_per_el'].sum()} deflections on {int((det['n_defl_per_el'] > 0).sum())} electrodes"
               + ("; detection window clipped to recording" if det["window_clipped"] else ""))
@@ -404,6 +411,9 @@ def build_argparser():
     p.add_argument("--mask", default=None, help="override: one mask .npy used for every recording")
     p.add_argument("--roi_csv", default=None, help="override: one ROI CSV used for every recording")
     p.add_argument("--only_contains", default=None, help="process only files whose name contains this substring")
+    p.add_argument("--min_event_size", type=int, default=1,
+                   help="ignore population events with fewer deflections than this before taking the "
+                        "20/50/80th size percentiles (Methods: no minimum; default 1)")
     p.add_argument("--dry_run", action="store_true", help="list what would be produced, write nothing")
     p.add_argument("--seed", type=int, default=0, help="unused (no randomness); kept for house-style consistency")
     return p
