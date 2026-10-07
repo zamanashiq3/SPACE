@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use SPACE, please cite the accompanying manuscript."
+title: "SPACE: Spatial Phase, Activity and Current Estimation for HD-MEA slice recordings"
+type: software
+authors:
+  - name: "<author list — fill in>"
+repository-code: "<GitHub URL>"
+license: MIT
+version: 1.0.0
+date-released: 2026-10-07
+preferred-citation:
+  type: article
+  title: "SPACE: A mesoscale computational framework for characterizing network coherence and pharmacological profiling in high-density MEAs"
+  authors:
+    - name: "<author list — fill in>"
+  journal: "<journal>"
+  year: 2026
+  doi: "<doi>"

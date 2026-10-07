@@ -1,0 +1,26 @@
+# Versions of the analysis environment used for the manuscript (Windows 10, conda; Python 3.10.19).
+# Packages not resolvable from the conda export are listed with the minimum version from requirements.txt.
+python==3.10.19
+numpy==2.0.1
+scipy==1.15.2
+pandas==2.3.3
+scikit-learn==1.7.2
+matplotlib==3.10.8
+seaborn==0.13.2
+numba==0.65.1
+tqdm==4.68.2
+pillow==12.0.0
+networkx==3.4.2
+joblib==1.5.3
+h5py>=3.8
+opencv-python>=4.7
+scikit-image>=0.20
+pywavelets>=1.4
+tifffile>=2023.2
+openpyxl>=3.1
+statsmodels>=0.14
+powerlaw>=1.5
+specparam>=1.1
+umap-learn>=0.5
+imageio>=2.31
+# ffmpeg 6.1.1 (system) for MP4 export in lfp-csd-explorer

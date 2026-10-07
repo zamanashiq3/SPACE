@@ -1,0 +1,24 @@
+# SPACE -- Python dependencies (Python >= 3.10). Install: pip install -r requirements.txt
+# Exact versions of the analysis environment: requirements-pinned.txt
+numpy>=1.24
+scipy>=1.10
+h5py>=3.8
+pandas>=1.5
+scikit-learn>=1.2
+matplotlib>=3.6
+seaborn>=0.12
+tqdm>=4.64
+numba>=0.57
+opencv-python>=4.7          # tissue registration (homography, Otsu, morphology)
+pillow>=9.4
+scikit-image>=0.20
+pywavelets>=1.4             # complex Morlet wavelet (cmor1.5-1.0)
+tifffile>=2023.2
+openpyxl>=3.1
+statsmodels>=0.14           # lag-1 autocorrelation (acf), BH-FDR (multipletests); numpy fallback exists
+# Optional (each has a documented fallback in the code):
+powerlaw>=1.5               # discrete power-law fits (fallback: discrete MLE with xmin = 1)
+specparam>=1.1              # aperiodic 1/f exponent (fallback: log-log OLS slope excluding line-noise bands)
+networkx>=3.0               # graph metrics in electrode_connectivity.py (skipped if absent)
+umap-learn>=0.5             # extras/ only
+imageio>=2.31               # movies in the companion visualizer
