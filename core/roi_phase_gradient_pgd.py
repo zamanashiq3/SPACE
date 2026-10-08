@@ -135,9 +135,13 @@ def get_h5_files():
 
 def get_drug_name(path):
     base = os.path.basename(path)
-    for k in ["4AP", "Bic", "CNQX", "ML297", "AF-DX", "AFDX"]:
+    for k in ["4AP", "Bic", "CNQX", "ML297", "AF-DX", "AFDX", "baseline", "base", "veh"]:
         if k.lower() in base.lower():
-            return "AF-DX" if k.lower() in ["af-dx", "afdx"] else k
+            if k.lower() in ["af-dx", "afdx"]:
+                return "AF-DX"
+            if k.lower() in ["baseline", "base", "veh"]:
+                return "4AP"          # 4-AP baseline recording
+            return k
     return os.path.splitext(base)[0]
 
 

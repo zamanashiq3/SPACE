@@ -131,9 +131,14 @@ def create_dataset(h5, path, shape, dtype, chunks=None, compression="lzf"):
 
 
 def extract_drug_name(filename):
-    base = os.path.basename(filename).replace(".brw", "")
-    m = re.search(r"cor_([^_]+(?:-[^_]+)?)", base, flags=re.IGNORECASE)
-    return m.group(1) if m else "unknown"
+    """Condition token in the file name -> 4AP, AFDX, BIC, CNQX, ML297 or unknown.
+    ``base``/``baseline``/``veh`` denote the 4-AP baseline recording."""
+    b = os.path.basename(filename).lower()
+    for tok, out in [("af-dx", "AFDX"), ("afdx", "AFDX"), ("4ap", "4AP"), ("bic", "BIC"), ("cnqx", "CNQX"),
+                     ("ml297", "ML297"), ("baseline", "4AP"), ("base", "4AP"), ("veh", "4AP")]:
+        if tok in b:
+            return out
+    return "unknown"
 
 
 def extract_genotype(filename):
@@ -141,7 +146,9 @@ def extract_genotype(filename):
     if re.search(r"(^|[_\-])wt([_\-]|$)", b):
         return "WT"
     if any(x in b for x in ["5xfad", "app", "ad"]):
-        return "AD"
+        return "5xFAD"
+    if any(x in b for x in ["c57", "ctl", "ctrl", "control"]):
+        return "CTL"
     return "unknown"
 
 

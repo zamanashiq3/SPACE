@@ -91,7 +91,8 @@ def read_meta(f: h5py.File) -> Tuple[float, int, int]:
 def parse_condition(name: str) -> str:
     """Drug token in a file name -> one of 4AP, AFDX, BIC, CNQX, ML297, unknown."""
     n = name.lower()
-    for tok, out in [("af-dx", "AFDX"), ("afdx", "AFDX"), ("4ap", "4AP"), ("bic", "BIC"), ("cnqx", "CNQX"), ("ml297", "ML297")]:
+    for tok, out in [("af-dx", "AFDX"), ("afdx", "AFDX"), ("4ap", "4AP"), ("bic", "BIC"), ("cnqx", "CNQX"), ("ml297", "ML297"),
+                     ("baseline", "4AP"), ("base", "4AP"), ("veh", "4AP")]:   # 4-AP baseline recordings
         if tok in n:
             return out
     return "unknown"

@@ -164,7 +164,8 @@ def detect_drug_condition(s: str):
         if idx != -1:
             hits.append((idx, tok))
     if not hits:
-        return None
+        # 4-AP baseline recordings may be named base/baseline/veh without a 4ap token
+        return "4ap" if any(t in ss for t in ("baseline", "base", "veh")) else None
     hits.sort()
     return hits[-1][1]
 
