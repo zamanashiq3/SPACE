@@ -17,6 +17,8 @@ was actually run for the paper) or a manuscript/code inconsistency that only you
 | A6 | Normalized LFP slope within the first 80 ms | `roi_lfp_csd_metrics.py` used 0–50 ms (its own display CSV); `psd_wavelet_metrics.py` already used 0–80 | Both 0–80 ms (**done**). |
 | A7 | Display maps at 0, 250, 500 ms | `roi_lfp_csd_metrics.py` `SNAP_MS = [0, 50, 100, 300, 400, 500]` | Left unchanged (display only); set `SNAP_MS = [0, 250, 500]` on the command line / constant if you want the script to match the figure exactly. |
 
+| A8 | Methods: "acquired ... at 10 kHz", "2 ms moving average (n_b = 20 samples)", "sampling interval 0.1 ms", "down-sampled by 4 to 2.5 kHz" | The BRW files report **fs = 9043.34 Hz** (BioCAM X), so the 2 ms window is 18 samples, the sampling interval 0.11 ms and the decimated rate 2.26 kHz. All scripts use the stored fs. | Correct the Methods numbers (or state "≈ 9 kHz, nominal 10 kHz"). |
+
 ## B. Written for the release from the Methods (no original script was provided)
 
 | # | Module | Choice that was not fixed by the Methods — please check |

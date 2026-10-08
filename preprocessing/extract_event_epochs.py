@@ -41,9 +41,9 @@ Algorithm (exactly as in the Methods):
 Implementation notes:
     - The electrode median used for the 3-SD criterion is taken from the same first 500 ms as the
       MAD (the Methods do not say otherwise).
-    - The 500 Hz epoch is obtained by block-averaging non-overlapping q = fs/500 samples centred
-      on each 2 ms tick (q = 20 at 10 kHz); at fs = 500 the samples are copied as is. fs must be
-      an integer multiple of 500 Hz. Samples that fall outside the recording are NaN (downstream
+    - The 500 Hz epoch is obtained by averaging the source samples within +/- 1 ms of each 2 ms
+      tick (a 2 ms block average; ~18 samples at the BioCAM X rate of 9043.34 Hz, 20 at 10 kHz);
+      at fs = 500 the samples are copied as is. Samples outside the recording are NaN (downstream
       scripts fill NaNs by linear interpolation).
     - Percentile targets use numpy's default linear interpolation; when fewer than three runs
       exist the same run may serve several targets (a warning is printed). With >= 3 runs the
@@ -297,19 +297,33 @@ def read_roi_rows(dset: h5py.Dataset, box: Tuple[int, int, int, int], W: int, s0
 
 
 def extract_epoch(dset: h5py.Dataset, box, W: int, centre: int, fs: float) -> np.ndarray:
-    """ROI x time epoch at FS_EPOCH: block-average of q = fs/FS_EPOCH samples centred on each tick."""
-    q = fs / FS_EPOCH
-    if abs(q - round(q)) > 1e-6 or q < 1:
-        raise ValueError(f"fs={fs} is not an integer multiple of {FS_EPOCH} Hz")
-    q = int(round(q))
-    n = len(epoch_time_axis())
-    s0 = centre - int(round(EPOCH_PRE_MS * fs / 1000.0)) - q // 2
-    X = read_roi_rows(dset, box, W, s0, s0 + n * q)
-    if q == 1:
-        return X
+    """ROI x time epoch at FS_EPOCH (500 Hz).
+
+    Each 2 ms tick of the epoch axis is the mean of the source samples whose time lies within
+    +/- 1 ms of the tick (a 2 ms block average). This works for any source rate (10 kHz,
+    9043.34 Hz as recorded by BioCAM X, 500 Hz, ...); at exactly 500 Hz it is a copy.
+    Samples outside the recording are NaN (downstream scripts interpolate/skip them).
+    """
+    t_axis = epoch_time_axis()                               # ms relative to the event centre
+    half = 1000.0 / FS_EPOCH / 2.0                            # +/- 1 ms
+    s0 = centre + int(np.floor((t_axis[0] - half) * fs / 1000.0)) - 1
+    s1 = centre + int(np.ceil((t_axis[-1] + half) * fs / 1000.0)) + 2
+    X = read_roi_rows(dset, box, W, s0, s1)                   # NaN outside the recording
+    t_src = (np.arange(s0, s1) - centre) * 1000.0 / fs        # ms of each source sample
+    if abs(fs - FS_EPOCH) < 1e-6:
+        idx = np.rint(t_axis * fs / 1000.0).astype(int) - (s0 - centre)
+        return X[:, idx].astype(np.float32)
+    edges = np.concatenate([t_axis - half, [t_axis[-1] + half]])
+    bins = np.searchsorted(edges, t_src, side="right") - 1    # bin index of each source sample
+    ok = (bins >= 0) & (bins < len(t_axis))
+    out = np.full((X.shape[0], len(t_axis)), np.nan, np.float32)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=RuntimeWarning)
-        return np.nanmean(X.reshape(X.shape[0], n, q), axis=2).astype(np.float32)
+        for k in range(len(t_axis)):
+            sel = ok & (bins == k)
+            if sel.any():
+                out[:, k] = np.nanmean(X[:, sel], axis=1)
+    return out
 
 
 # =============================================================================
