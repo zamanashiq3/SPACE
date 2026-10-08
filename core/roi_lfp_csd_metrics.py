@@ -69,8 +69,8 @@ import argparse
 import numpy as np
 import h5py
 import matplotlib
-if "--roi_csv" in sys.argv or not os.environ.get("DISPLAY"):
-    matplotlib.use("Agg")   # non-interactive run (ROI picker not used / no display)
+if "--roi_csv" in sys.argv or (sys.platform.startswith("linux") and not os.environ.get("DISPLAY")):
+    matplotlib.use("Agg")   # non-interactive run (ROI picker not used / headless Linux)
 import matplotlib.pyplot as plt
 
 from scipy.ndimage import gaussian_filter
@@ -84,7 +84,7 @@ FILE_PATTERN = "*_2ms.h5"
 OUT_DIR = "data/results/roi_lfp_csd"
 
 MASK_PATH = "data/masks/contact_mask_64x64.npy"
-TIF_PATH = "data/slice_photos/slice_map.tif"
+TIF_PATH = "data/masks/<slice_id>__rectified_grid.png"   # rectified slice image from tissue_registration_mask.py
 
 # Snapshot offsets relative to t0
 SNAP_MS = [0, 50, 100, 300, 400, 500]
@@ -296,20 +296,25 @@ def load_mask_from_h5_or_npy(f, H, W):
 # TIFF-ALIGNED ROI PICKER - PRESERVED FROM YOUR PIPELINE
 # ============================================================
 def align_tif_to_mask(mask, tif_path):
-    import tifffile
+    """Load the slice image that is already rectified to the electrode field (the
+    ``<slice>__rectified_grid.png`` written by preprocessing/tissue_registration_mask.py, or a
+    TIFF/PNG/JPG whose full extent equals the 64x64 array) and align it to the mask bbox."""
     from skimage.transform import resize
 
     H, W = mask.shape
-    img = tifffile.imread(tif_path)
-    print("[DEBUG] raw TIF shape:", img.shape)
-
-    if img.ndim == 3:
-        if img.shape[0] < 10:
+    if str(tif_path).lower().endswith((".tif", ".tiff")):
+        import tifffile
+        img = tifffile.imread(tif_path)
+        if img.ndim == 3 and img.shape[0] < 10:          # stack: first page
             img = img[0]
-        else:
-            img = img[img.shape[0] // 2]
-    elif img.ndim == 4:
-        img = img[0, img.shape[1] // 2]
+        elif img.ndim == 3 and img.shape[0] >= 10:        # z-stack: middle page / or RGB
+            img = img[img.shape[0] // 2] if img.shape[-1] > 4 else img.mean(axis=-1)
+        elif img.ndim == 4:
+            img = img[0, img.shape[1] // 2]
+    else:
+        from PIL import Image
+        img = np.asarray(Image.open(tif_path).convert("L"))
+    print("[DEBUG] raw image shape:", img.shape)
 
     img = img.astype(float)
     img = (img - img.min()) / (img.max() - img.min() + 1e-9)
@@ -1590,7 +1595,7 @@ def build_argparser():
     p.add_argument("--file_pattern", default=FILE_PATTERN, help="Glob pattern for H5 files (default: %(default)s)")
     p.add_argument("--out_dir", default=OUT_DIR, help="Output folder (default: %(default)s)")
     p.add_argument("--mask", default=MASK_PATH, help="64x64 contact mask .npy (default: %(default)s)")
-    p.add_argument("--tif", default=TIF_PATH, help="Reference slice TIFF/photo for the ROI picker (default: %(default)s)")
+    p.add_argument("--tif", default=TIF_PATH, help="Slice image rectified to the electrode field for the ROI picker: use data/masks/<slice>__rectified_grid.png from tissue_registration_mask.py (TIFF/PNG/JPG accepted) (default: %(default)s)")
     p.add_argument("--roi_csv", default=None,
                    help="Existing ROI definitions CSV (roi_index,roi_name,r0,r1,c0,c1; Python slice bounds). "
                         "When given, the interactive TIFF ROI picker is skipped (non-interactive run). "
