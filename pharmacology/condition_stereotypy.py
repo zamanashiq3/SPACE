@@ -354,7 +354,7 @@ def main():
         stereotypy_figure(df, out_dir / "figures" / "stereotypy_index")
 
     manifest = dict(
-        script="core/condition_stereotypy.py", in_root=str(in_root), mask_dir=str(mask_dir), out_dir=str(out_dir),
+        script="pharmacology/condition_stereotypy.py", in_root=str(in_root), mask_dir=str(mask_dir), out_dir=str(out_dir),
         mask_override=str(args.mask) if args.mask else None, map_key=args.map_key,
         spatial_csd_map=f"stored per-recording map {args.map_key} (Methods: 'spatial CSD maps')",
         conditions=args.conditions, electrodes="tissue-contact mask excluding the outermost ring; non-finite electrodes dropped per pair",

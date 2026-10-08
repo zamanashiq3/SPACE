@@ -463,7 +463,7 @@ def main():
         deviation_figure(df, args.drugs, out_dir / "figures" / "network_state_deviation")
 
     manifest = dict(
-        script="core/drug_lfp_zscore_maps.py", in_root=str(in_root), mask_dir=str(mask_dir), out_dir=str(out_dir),
+        script="pharmacology/drug_lfp_zscore_maps.py", in_root=str(in_root), mask_dir=str(mask_dir), out_dir=str(out_dir),
         mask_override=str(args.mask) if args.mask else None,
         map_key=args.map_key, compute_from_ts=bool(args.compute_from_ts), time_chunk=TIME_CHUNK,
         amplitude_map=("time-mean of |LFP| per electrode streamed from " + LFP_TS_KEY) if args.compute_from_ts

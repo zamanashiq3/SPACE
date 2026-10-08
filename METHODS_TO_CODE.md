@@ -15,7 +15,7 @@ statistics (Welch's *t*, BH-FDR, mixed-effects models), which are not performed 
 | Electrode is tissue-contact when ≥ 30 % of its cell is tissue → Ω stored as 64 × 64 binary array | `_bin_to_64x64(coverage=0.30)` → `<slice>__contact_mask_64x64.npy` (+ manifest JSON with homography and thresholds) |
 | Manual refinement of masks | edit the `.npy` (any array editor); the manifest records the automatic version |
 | Electrodes outside Ω as empirical noise reference (Suppl. Fig. 1) | `utils/mask_noise_reference.py` (RMS inside vs outside Ω, example traces) |
-| Six 4 × 4 ROIs (M1, M2, S1, CA1, CA3, DG) centred on manually selected positions, stored as row/column bounds | `core/roi_lfp_csd_metrics.py` interactive TIFF-aligned picker (`ROI_SIZE = 4`) → `roi_definitions.csv` (`roi_index, roi_name, r0, r1, c0, c1`, Python slice bounds); same CSV reused for every recording of the slice |
+| Six 4 × 4 ROIs (M1, M2, S1, CA1, CA3, DG) centred on manually selected positions, stored as row/column bounds | `preprocessing/pick_rois.py` (click once per slice on the rectified photo; `--size 4`) → `data/roi_definitions/<slice>_roi_definitions.csv` (`roi_index, roi_name, r0, r1, c0, c1`, Python slice bounds); the same CSV is passed to every ROI-level script (`core/roi_lfp_csd_metrics.py` keeps its own legacy picker) |
 | Pooling Ctx = M1, M2, S1; Hippo = CA1, CA3, DG | `REGIONS` / `ROI_REGION_MAP` constants in every ROI-level script |
 
 ## Signal preprocessing
@@ -132,11 +132,11 @@ All in `core/psd_wavelet_metrics.py` on the 500 Hz ROI epochs.
 |---|---|
 | Zero-lag Pearson r between electrode CSD series; within-ROI 16 × 16 over −50..500 ms | `core/roi_lfp_csd_metrics.py` (`lfp_roi_corr`, `csd_roi_corr` matrices); `core/electrode_connectivity.py` within-ROI block |
 | 96-node inter-regional: \|CSD\| epochs baseline-corrected, 0..250 ms, concatenated across matching event indices; pairs with < 3 samples or zero variance excluded; Fisher z; ROI value = mean over pairs to the other five ROIs | `electrode_connectivity.py` (`SIGNALS_TO_RUN` includes `csd_abs`, `ANALYSIS_WINDOW_MS = (0, 250)`, `MIN_POINTS_FOR_CORR = 3`, `fisher_z()`, `mean_corr_fisher()`) |
-| Stereotypy: Pearson r across Ω between spatial CSD maps of each condition pair (5 × 5); index = mean Fisher z over the 10 pairs | `core/condition_stereotypy.py` → `stereotypy_index.csv` |
+| Stereotypy: Pearson r across Ω between spatial CSD maps of each condition pair (5 × 5); index = mean Fisher z over the 10 pairs | `pharmacology/condition_stereotypy.py` → `stereotypy_index.csv` |
 
 ## Drug-normalized spatial maps
 
-`core/drug_lfp_zscore_maps.py`.
+`pharmacology/drug_lfp_zscore_maps.py`.
 
 | Methods statement | Implementation |
 |---|---|
@@ -157,9 +157,14 @@ All in `core/psd_wavelet_metrics.py` on the 500 Hz ROI epochs.
 | 95 % CI from 2,000 bootstraps; one-sided P from 1,000 label permutations | `ROC_N_BOOTSTRAP = 2000`, `ROC_N_PERMUTATIONS = 1000`, `bootstrap_auc_ci()`, `permutation_auc_pvalue()` |
 | Scaling: 300-sample epochs, N = 100…10,000 (with replacement above the recorded count), 10 iterations × 100 runs; SPACE = Hilbert + R(t) + MPV; conventional = periodogram + threshold avalanches; pairwise Pearson | `SCALABILITY_T = 300`, `SCALABILITY_N_LIST`, `SCALABILITY_REPEATS = 10`, `SCALABILITY_RUNS_PER_REPEAT = 100`, `make_benchmark_matrix()`, `space_metric_time()`, `psd_metric_time()`, `avalanche_metric_time()`, `pairwise_corr_time()` |
 | Sensitivity = −log₁₀ P of two-sided Welch's t on pooled events, BH-corrected | `welch_p()`, sensitivity block (`statsmodels` `multipletests(method="fdr_bh")`) |
-| Supporting pairwise Mann–Whitney / Cliff's δ / BH-FDR of SPACE (R, MPV) vs PSD features across condition pairs | `benchmark/spectral_sensitivity_bh_fdr.py` |
+| Supporting pairwise Mann–Whitney / Cliff's δ / BH-FDR of SPACE (R, MPV) vs PSD features across condition pairs | `pharmacology/spectral_sensitivity_bh_fdr.py` |
 
 ## Statistics and reproducibility
+
+`core/genotype_roi_comparison.py` pools every module's output into one animal-level table
+(events → ROI → region means per slice), runs two-tailed Welch's *t*-tests per metric × ROI /
+region / slice with Benjamini–Hochberg correction within each feature family (`comparison_stats.csv`,
+`REPORT.md`, figures). `run_baseline.py` chains the whole baseline workflow.
 
 Animal-level tables produced here (`animal_level.csv`, `network_state_deviation.csv`,
 `stereotypy_index.csv`, per-ROI summary CSVs and `.xlsx` exports) were analysed in GraphPad

@@ -50,7 +50,7 @@ Already present: statsmodels, networkx, tifffile, openpyxl, imageio, scikit-imag
 ### SPACE/utils/pick_representative_recording.py
 - Added `matplotlib.use("Agg")`.
 
-### SPACE/benchmark/spectral_sensitivity_bh_fdr.py
+### SPACE/pharmacology/spectral_sensitivity_bh_fdr.py
 - `extract_space_windows()`: time axis now uses `fs_eff` from the sibling `kuramoto_ALL_summary.json` (`dt = 1/fs_eff`), falling back to the legacy `SPACE_DT_SEC = 0.002` when the json is absent. `kuramoto_ALL.csv` `t_bin` is a sample index at `fs_eff`, not a 2 ms bin, for files produced by the current `phase_kuramoto.py`. Added `import json`. Window/step (5 s / 2.5 s) untouched.
 
 ### SPACE/benchmark/roc_scalability_sensitivity.py
@@ -118,7 +118,7 @@ python utils/pick_representative_recording.py --in_dir $S/processed_2ms/$g --mas
 # 9a welch_psd_recordings.py (already worked; outputs were present)
 python benchmark/welch_psd_recordings.py --in_root $S/processed_2ms --mask_dir $S/masks --out_dir $S/psd_tables --figs_dir $R/welch_psd
 # 9b spectral_sensitivity_bh_fdr.py  (seconds)
-python benchmark/spectral_sensitivity_bh_fdr.py --space_root $S/kuramoto_tables --psd_root $S/psd_tables \
+python pharmacology/spectral_sensitivity_bh_fdr.py --space_root $S/kuramoto_tables --psd_root $S/psd_tables \
   --out_dir $R/spectral_sensitivity_bh_fdr --pair_a 4ap --pair_b afdx
 
 # 10 roc_scalability_sensitivity.py  (~30 s with --quick; drop --quick for the Methods benchmark)
@@ -157,7 +157,7 @@ for f in CTL/ctl_s1_cor_4ap_2ms CTL/ctl_s1_cor_afdx_2ms 5xFAD/fad_s1_cor_4ap_2ms
 | core/roi_lfp_csd_metrics.py | fixed | `--roi_csv` skips TIFF picker; `np.trapz`->`np.trapezoid`; Agg. ~7 min/group. |
 | utils/pick_representative_recording.py | fixed | Agg backend only. |
 | benchmark/welch_psd_recordings.py | ok | unchanged. |
-| benchmark/spectral_sensitivity_bh_fdr.py | fixed | time axis from `fs_eff`; SPACE family yields 0 windows on 1.2 s files (see conflicts); Conventional stats + bar plot produced. |
+| pharmacology/spectral_sensitivity_bh_fdr.py | fixed | time axis from `fs_eff`; SPACE family yields 0 windows on 1.2 s files (see conflicts); Conventional stats + bar plot produced. |
 | benchmark/roc_scalability_sensitivity.py | fixed | `--event_roots`, `--quick`. Only 1 dataset/group -> grouped CV falls back to stratified row CV (warning written in `roc_results.csv`). |
 | explorer/csd_snapshot_montage.py | ok | unchanged. |
 | explorer/roi_hotspot_kymograph.py | ok | unchanged. |

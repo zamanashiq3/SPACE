@@ -19,8 +19,8 @@ echo "### 3  regional CSD dynamics"; python core/regional_csd_dynamics.py --in_r
 echo "### 4  LFP/PSD/wavelet";       python core/psd_wavelet_metrics.py --root_dir $S/event_traces --out_dir $R/psd_wavelet_metrics --groups CTL,5xFAD
 echo "### 5  connectivity";          python core/electrode_connectivity.py --root_dir $S/event_traces --out_dir $R/electrode_connectivity --groups CTL,5xFAD
 echo "### 6  regional Kuramoto / avalanches"; python core/ctx_hippo_avalanche_kuramoto_compare.py --root_dir $S/event_traces --out_dir $R/ctx_hippo_avalanche_kuramoto_compare --groups CTL,5xFAD
-echo "### 7  drug z-maps";           python core/drug_lfp_zscore_maps.py --in_root $S/processed_2ms --mask_dir $S/masks --out_dir $R/drug_lfp_zscore_maps
-echo "### 8  stereotypy";            python core/condition_stereotypy.py --in_root $S/processed_2ms --mask_dir $S/masks --out_dir $R/condition_stereotypy
+echo "### 7  drug z-maps";           python pharmacology/drug_lfp_zscore_maps.py --in_root $S/processed_2ms --mask_dir $S/masks --out_dir $R/drug_lfp_zscore_maps
+echo "### 8  stereotypy";            python pharmacology/condition_stereotypy.py --in_root $S/processed_2ms --mask_dir $S/masks --out_dir $R/condition_stereotypy
 echo "### 9  Welch PSD tables";      python benchmark/welch_psd_recordings.py --in_root $S/processed_2ms --mask_dir $S/masks --out_dir $S/psd_tables --figs_dir $R/welch_psd
 
 # whole-slice scripts take one mask / one ROI csv per call -> loop over slices
@@ -40,6 +40,6 @@ done
 for d in $R/phase_kuramoto/*/*/; do n=$(basename "$d"); mkdir -p $S/kuramoto_tables/$n/tables
   cp "$d"/tables/kuramoto_ALL.csv "$d"/tables/kuramoto_ALL_summary.json $S/kuramoto_tables/$n/tables/; done
 
-echo "### 15 spectral sensitivity"; python benchmark/spectral_sensitivity_bh_fdr.py --space_root $S/kuramoto_tables --psd_root $S/psd_tables --out_dir $R/spectral_sensitivity_bh_fdr --pair_a 4ap --pair_b afdx
+echo "### 15 spectral sensitivity"; python pharmacology/spectral_sensitivity_bh_fdr.py --space_root $S/kuramoto_tables --psd_root $S/psd_tables --out_dir $R/spectral_sensitivity_bh_fdr --pair_a 4ap --pair_b afdx
 echo "### 16 ROC / scalability / sensitivity (quick)"; python benchmark/roc_scalability_sensitivity.py --space_root $R/ctx_hippo_avalanche_kuramoto_compare --lfp_csd_root $R/psd_wavelet_metrics --event_roots $S/event_traces/CTL,$S/event_traces/5xFAD --out_dir $R/roc_scalability_sensitivity --quick
 echo "DONE -> $R"

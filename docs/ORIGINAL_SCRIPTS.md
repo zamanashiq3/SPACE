@@ -26,11 +26,11 @@ kept privately by the authors and are not part of the repository.
 | — (ROI-epoch avalanches, 2/4/8 ms bins; regional Kuramoto/PLV) | `core/ctx_hippo_avalanche_kuramoto_compare.py` | included (from the event-epoch working folder) |
 | — (PSD/wavelet/specparam/complexity on ROI epochs) | `core/psd_wavelet_metrics.py` | included (from the event-epoch working folder) |
 | — (96-node inter-regional coupling) | `core/electrode_connectivity.py` | included (from the event-epoch working folder) |
-| `roboustz_v1-remove_articact.py` | `core/drug_lfp_zscore_maps.py` | rewritten to the Methods (robust z against the 4-AP map, σ = 8 background) |
+| `roboustz_v1-remove_articact.py` | `pharmacology/drug_lfp_zscore_maps.py` | rewritten to the Methods (robust z against the 4-AP map, σ = 8 background) |
 | `roboustz_v1.py`, `roboustz_v3.py`, `csd-only_vis.py` | `extras/csd_metric_fingerprint_pca_umap.py` | exploratory CSD-metric fingerprint with PCA/UMAP; not in manuscript |
-| — (5 × 5 condition stereotypy) | `core/condition_stereotypy.py` | written for the release from the Methods |
+| — (5 × 5 condition stereotypy) | `pharmacology/condition_stereotypy.py` | written for the release from the Methods |
 | `261221_4_psd_welch_streaming_traverse.py` | `benchmark/welch_psd_recordings.py` | included |
-| `261221_5_sensitivity_psd_vs_space_pvalues.py` | `benchmark/spectral_sensitivity_bh_fdr.py` | included (supporting) |
+| `261221_5_sensitivity_psd_vs_space_pvalues.py` | `pharmacology/spectral_sensitivity_bh_fdr.py` | included (supporting) |
 | `261221_p7_roc_space_vs_corr.py`, `261221_6_benchmark_spcace.py` | `benchmark/roc_scalability_sensitivity.py` | superseded by the combined benchmark (leave-one-animal-out, bootstrap CI, permutation P, 10 × 100-run scaling) |
 | `261221_2_pick_clean_csd_representative.py` | `utils/pick_representative_recording.py` | included |
 | `261221_CSD_PSD_welch_compare_like_PSD.py`, `261221_PSD_2D_projection_maps.py` | — | not in manuscript (CSD spectra; PSD projection maps) |

@@ -7,6 +7,12 @@ Populate the subfolders below with your own recordings before running the script
 CLI flag (or a clearly marked `# --- EDIT THIS ---` constant near the top of the file)
 if you'd rather keep your data somewhere else.
 
+## `slices.csv`
+
+Written by `run_baseline.py init`: one row per slice — `slice_id, group, brw, photo`. The slice id
+is the photo file stem and must be contained in the `.brw` file name; `group` is the genotype
+label used as the `processed_2ms/<group>/` subfolder (edit it if the automatic guess is wrong).
+
 ## `raw_brw/`
 
 Original 3Brain BioCAM HD-MEA recordings, one `.brw` file per slice/condition (e.g. one

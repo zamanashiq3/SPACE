@@ -795,9 +795,11 @@ def pick_event_frames(R, fs_eff, n_peaks=SNAP_PKS, pad_s=SNAP_PAD_SEC):
     return np.unique(np.clip(frames, 0, len(r)-1)).astype(int)
 
 # ================== FOLDER WRAPPER ==================
-def run_folder(in_dir=IN_DIR, out_root=OUT_ROOT, **kwargs):
+def run_folder(in_dir=IN_DIR, out_root=OUT_ROOT, pattern="*.h5", **kwargs):
+    import fnmatch
     ensure(out_root)
-    files = [os.path.join(in_dir, f) for f in os.listdir(in_dir) if f.endswith(".h5")]
+    files = sorted(os.path.join(in_dir, f) for f in os.listdir(in_dir)
+                   if f.endswith(".h5") and fnmatch.fnmatch(f, pattern))
     for p in tqdm(files, desc="Files", unit="file"):
         try:
             process_h5_allphase(p, out_root, **kwargs)
@@ -811,6 +813,7 @@ def build_argparser():
     p.add_argument("--out_root", default=OUT_ROOT, help="Output root for tables/figures (default: %(default)s)")
     p.add_argument("--mask", default=MASK_NPY, help="Optional 64x64 contact mask .npy (default: %(default)s)")
     p.add_argument("--mode", default=MODE, choices=["wideband", "fusion"], help="Phase estimation mode")
+    p.add_argument("--pattern", default="*.h5", help="Glob pattern for H5 files within in_dir (default: %(default)s)")
     return p
 
 
@@ -821,6 +824,7 @@ if __name__ == "__main__":
     run_folder(
         in_dir=args.in_dir,
         out_root=args.out_root,
+        pattern=args.pattern,
         mode=args.mode,
         bands=BANDS,
         power_exponent=POWER_EXP,

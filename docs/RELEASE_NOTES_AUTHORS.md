@@ -25,8 +25,8 @@ was actually run for the paper) or a manuscript/code inconsistency that only you
 |---|---|---|
 | B1 | `preprocessing/extract_event_epochs.py` | **Most important item.** Read literally, "contiguous runs of non-zero counts were taken as population events" yields hundreds of tiny runs (single-electrode minima), so the 20th/50th percentile events are 1–5 deflections large (see the QC figure `results/event_epochs/qc/*.png`). The release adds `--min_event_size` (default 1 = literal Methods). If your original extraction used a minimum size, a count threshold, a smoothing of the count trace, or merged runs separated by short gaps, set the option accordingly **and add that rule to the Methods**. If you still have the original event-extraction script (the one that produced the `*_event_dbscan_archetype` folders used by `psd_wavelet_metrics.py`), replace this module with it. Other choices: electrode median for the 3-SD rule from the same first 500 ms as the MAD; the three picks are forced to be distinct runs; epochs block-averaged (20 samples) to 500 Hz. |
 | B2 | `core/regional_csd_dynamics.py` | "Largest event" = global peak of summed \|LFP\| over the whole recording; pooled-region traces are means over the union of ROI electrodes; SampEn uses population SD; MCR counts sign changes of (a − mean). |
-| B3 | `core/drug_lfp_zscore_maps.py` | Taken literally, row/column-median and σ = 8 background subtraction remove each map's overall level, so the median Z of every drug map would be ≈ 0 and Fig. 6B could not show drug effects. The release therefore restores the tissue-wide median after cleaning (flat-fielding; `--no_preserve_level` gives the literal version). **Please confirm this is what was done, and consider adding one sentence to the Methods.** "Mean LFP amplitude" is taken as the stored per-electrode RMS map (`--compute_from_ts` gives time-mean \|LFP\|). |
-| B4 | `core/condition_stereotypy.py` | "Spatial CSD map" of a condition = per-electrode CSD SD map (`/csd/metrics/std_map`); `--map_key` selects max/min maps instead. State the map used in the Methods. |
+| B3 | `pharmacology/drug_lfp_zscore_maps.py` | Taken literally, row/column-median and σ = 8 background subtraction remove each map's overall level, so the median Z of every drug map would be ≈ 0 and Fig. 6B could not show drug effects. The release therefore restores the tissue-wide median after cleaning (flat-fielding; `--no_preserve_level` gives the literal version). **Please confirm this is what was done, and consider adding one sentence to the Methods.** "Mean LFP amplitude" is taken as the stored per-electrode RMS map (`--compute_from_ts` gives time-mean \|LFP\|). |
+| B4 | `pharmacology/condition_stereotypy.py` | "Spatial CSD map" of a condition = per-electrode CSD SD map (`/csd/metrics/std_map`); `--map_key` selects max/min maps instead. State the map used in the Methods. |
 | B5 | `core/roi_phase_gradient_pgd.py` (added block) | Propagation direction θ_k = atan2(−⟨g_y⟩, −⟨g_x⟩), circular mean/resultant over 0–500, 0–250, 250–500 ms per ROI and pooled over ROIs ("all ROIs" row = the whole-slice values quoted in Results, e.g. 333.4°, R = 0.98). Confirm the whole-slice value in the paper was pooled this way (over all ROI electrodes and time points) rather than, e.g., over ROI mean directions. |
 
 ## C. Manuscript statements with no corresponding code — decide
@@ -41,7 +41,15 @@ was actually run for the paper) or a manuscript/code inconsistency that only you
 | C6 | Fig. 3H / Fig. 7C–D | Inter-regional coupling in the Methods uses \|CSD\| epochs; `electrode_connectivity.py` computes `lfp`, `csd_abs` and `csd_signed`; make sure the figure used `csd_abs`. |
 | C7 | Suppl. Fig. 7 numbering | The earlier README said Suppl. Fig. 8; the manuscript's benchmark figure is Suppl. Fig. 7. Updated. |
 
-## D. Smoke test
+## D. Baseline-first restructure (2026-10-08)
+
+The repository was reorganised around `run_baseline.py` (genotype × ROI comparison of 4-AP
+baseline recordings, one command). Drug-condition scripts moved to `pharmacology/` and remain
+needed for Fig. 6–7; `core/genotype_roi_comparison.py` is new and pools every module's
+animal-level outputs. With the current two recordings (one CTL, one 5xFAD) all metrics and
+figures are produced but *p*/*q* are undefined (n = 1 per group).
+
+## E. Smoke test
 
 `examples/run_example.sh` runs every script on synthetic data (log in `_spec/run_example.log`
 of the delivery bundle). Pre-existing scripts needed only plumbing fixes (CLI overrides for

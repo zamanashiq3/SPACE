@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 welch_psd_recordings.py -- SPACE framework: conventional per-electrode Welch PSD tables of whole
-recordings (the "psd_tables" consumed by benchmark/spectral_sensitivity_bh_fdr.py).
+recordings (the "psd_tables" consumed by pharmacology/spectral_sensitivity_bh_fdr.py).
 
 Manuscript Methods section: "Power spectral density" (Welch estimator, band definitions) and the
 Statistics section's "Benjamini-Hochberg FDR across spectral comparisons" (conventional PSD
 features of the sensitivity benchmark).
 Manuscript figure(s): Supplementary Figure 8 (conventional-feature arm, via
-benchmark/spectral_sensitivity_bh_fdr.py); per-recording mean PSD / band-power overview figures.
+pharmacology/spectral_sensitivity_bh_fdr.py); per-recording mean PSD / band-power overview figures.
 
 Inputs:
     data/processed_2ms/<group>/<name>.h5   (schema of preprocessing/brw_to_2ms_h5.py; stored fs)
