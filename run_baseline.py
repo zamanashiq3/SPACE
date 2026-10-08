@@ -21,7 +21,7 @@ Workflow (each stage is a subcommand; ``all`` chains them; everything is driven 
         |                             avalanche_statistics, pick_representative_recording
         |             then          : stage kuramoto tables, roc_scalability_sensitivity
         |           -> data/results/<module>[/<group>] ; logs in data/results/logs/<step>.log
-        | compare   core/genotype_roi_comparison.py (defaults to data/results)
+        | compare   core/genotype_roi_comparison.py --results_root data/results
         v
     data/results/genotype_roi_comparison/
 
@@ -376,12 +376,16 @@ def cmd_analyze(lay: Layout, args) -> bool:
 def cmd_compare(lay: Layout, args) -> bool:
     script = REPO_ROOT / "core" / "genotype_roi_comparison.py"
     if not script.exists():
-        print(f"[compare] {lay.rel(script)} does not exist yet -- nothing to run. "
-              f"All inputs are ready under {lay.rel(lay.results)}.")
-        return True
-    if lay.results != (REPO_ROOT / "data" / "results"):
-        print(f"[compare] note: genotype_roi_comparison.py reads data/results by default (data_root={lay.rel(lay.root)}).")
-    steps = [Step("genotype_roi_comparison", [PY, "core/genotype_roi_comparison.py"], None, interactive=True)]
+        print(f"[compare] {lay.rel(script)} does not exist -- nothing to run.")
+        return False
+    groups = sorted(load_slices(lay)["group"].unique().tolist()) if lay.slices_csv.exists() else []
+    cmd = [PY, "core/genotype_roi_comparison.py", "--results_root", lay.rel(lay.results),
+           "--mask_dir", lay.rel(lay.masks)]
+    if groups:
+        ctl = [g for g in groups if g.upper().startswith(("CTL", "WT", "C57", "CONTROL"))]
+        groups = ctl + [g for g in groups if g not in ctl]      # control first
+        cmd += ["--groups", *groups]
+    steps = [Step("genotype_roi_comparison", cmd, lay.results / "genotype_roi_comparison" / "REPORT.md")]
     return run_steps(steps, lay, dry_run=args.dry_run, force=True)
 
 
