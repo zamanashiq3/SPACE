@@ -1,0 +1,3 @@
+slice_id,group,brw,photo
+5xfad_cor_2a,5xFAD,data/raw_brw/5xfad_cor_2a_base.brw,data/slice_photos/5xfad_cor_2a.jpg
+c57bl6_cor_6a,CTL,data/raw_brw/c57bl6_cor_6a_base.brw,data/slice_photos/c57bl6_cor_6a.jpg

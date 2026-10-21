@@ -90,6 +90,7 @@ TIF_PATH = "data/masks/<slice_id>__rectified_grid.png"   # rectified slice image
 SNAP_MS = [0, 50, 100, 300, 400, 500]
 
 # ROI time window for raw traces/kymographs
+T0_SETTLE_MS = 200           # first 200 ms excluded from the onset search (filter start-up transient)
 PRE_MS = 50
 POST_MS = 500
 
@@ -485,7 +486,7 @@ def clean_channel_matrix(X, fs):
 # ============================================================
 # EXTRACTION
 # ============================================================
-def find_t0_chunked(dset, chunk_size=CHUNK_SIZE, mask_flat_idx=None):
+def find_t0_chunked(dset, chunk_size=CHUNK_SIZE, mask_flat_idx=None, fs=None):
     n_ch, T = dset.shape
     score = np.zeros(T, dtype=np.float64)
 
@@ -501,6 +502,9 @@ def find_t0_chunked(dset, chunk_size=CHUNK_SIZE, mask_flat_idx=None):
             X = dset[i0:i1, :].astype(np.float32)
             score += np.sum(np.abs(X), axis=0)
 
+    # exclude the causal-filter start-up transient (first T0_SETTLE_MS) from the onset search
+    skip = min(T - 1, int(round(T0_SETTLE_MS * fs / 1000.0))) if fs else 0
+    score[:skip] = -np.inf
     return int(np.argmax(score))
 
 
@@ -1561,7 +1565,7 @@ def compute_global_scales(files, rois, mask):
             mask_idx = np.flatnonzero(mask2d.reshape(-1))
             d_lfp = f["/lfp/ts_2ms_full"]
             d_csd = f["/csd/ts_2ms_full"]
-            t0 = find_t0_chunked(d_lfp, mask_flat_idx=mask_idx)
+            t0 = find_t0_chunked(d_lfp, mask_flat_idx=mask_idx, fs=fs)
 
             if need_lfp_snap:
                 lfp_snaps = extract_snapshots_cleaned_chunked(d_lfp, H, W, fs, t0)
@@ -1658,7 +1662,7 @@ def main():
             d_csd = f["/csd/ts_2ms_full"]
 
             # t0 from LFP, matching your ROI pipeline. Change to d_csd if desired.
-            t0 = find_t0_chunked(d_lfp, chunk_size=CHUNK_SIZE, mask_flat_idx=mask_idx)
+            t0 = find_t0_chunked(d_lfp, chunk_size=CHUNK_SIZE, mask_flat_idx=mask_idx, fs=fs)
             print(f"[INFO] t0={t0}")
 
             lfp_snaps = extract_snapshots_cleaned_chunked(d_lfp, H, W, fs, t0)

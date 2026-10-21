@@ -81,6 +81,7 @@ ROI_DIR = REPO_ROOT / "data" / "roi_definitions"
 OUT_ROOT = REPO_ROOT / "data" / "event_traces"
 RESULTS_DIR = REPO_ROOT / "data" / "results" / "event_epochs"
 T0_SEARCH_S = 2.0          # whole-slice onset searched in the first 2 s
+SETTLE_MS = 200.0          # ignore the first 200 ms (causal-filter start-up transient) for t0 and noise
 NOISE_WINDOW_S = 0.5       # robust SD / median from the first 500 ms
 THRESH_SD = 3.0            # deflection threshold (robust SDs below the median)
 REFRACTORY_MS = 4.0        # per-electrode refractory period
@@ -181,6 +182,7 @@ def find_t0_chunked(dset: h5py.Dataset, idx: np.ndarray, fs: float, search_s: fl
     n_ch, T = dset.shape
     T_s = min(T, int(round(search_s * fs)))
     score = np.zeros(T_s, dtype=np.float64)
+    skip = min(T_s - 1, int(round(SETTLE_MS * fs / 1000.0)))
     for t0 in range(0, T_s, time_chunk):
         t1 = min(t0 + time_chunk, T_s)
         for c0 in range(0, n_ch, ch_block):
@@ -191,6 +193,7 @@ def find_t0_chunked(dset: h5py.Dataset, idx: np.ndarray, fs: float, search_s: fl
             X = dset[c0:c1, t0:t1]
             score[t0:t1] += np.abs(X[sel]).sum(axis=0)
     score /= max(len(idx), 1)
+    score[:skip] = -np.inf                      # filter settling period excluded
     return int(np.argmax(score)), score
 
 
@@ -216,8 +219,9 @@ def read_rows_blocked(dset: h5py.Dataset, idx: np.ndarray, s0: int, s1: int, ch_
 def detect_population_events(lfp: h5py.Dataset, idx: np.ndarray, fs: float, t0: int) -> dict:
     """Per-sample deflection counts in t0-100..t0+400 ms and contiguous-run events."""
     T = lfp.shape[1]
-    n_noise = min(T, int(round(NOISE_WINDOW_S * fs)))
-    base = read_rows_blocked(lfp, idx, 0, n_noise)                       # [n_el, n_noise]
+    n_settle = int(round(SETTLE_MS * fs / 1000.0))
+    n_noise = min(T, n_settle + int(round(NOISE_WINDOW_S * fs)))
+    base = read_rows_blocked(lfp, idx, n_settle, n_noise)                # first 500 ms after the settling period
     med = np.median(base, axis=1)
     rsd = np.median(np.abs(base - med[:, None]), axis=1) / 0.6745
     thr = med - THRESH_SD * rsd                                            # minima must be below this
@@ -471,7 +475,13 @@ def main():
                     recordings=[str(p) for p in files])
     (results_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
     print(f"[DONE] {len(rows)} event folders from {len(files)} recordings -> {out_root}; catalog in {results_dir}")
+    if files and not rows and not args.dry_run:
+        print("[ERROR] no population events were detected in any recording. Typical causes: the filter "
+              "start-up transient dominates the first seconds (re-convert with the current brw_to_2ms_h5.py), "
+              "a wrong mask, or a recording without 4-AP network events. Check the QC figures in "
+              f"{results_dir}/qc.")
+        return 2
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main() or 0)

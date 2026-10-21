@@ -60,6 +60,7 @@ PRE_MS = 10
 POST_MS = 500
 PAD_MS = 100                 # read extra each side for phase edges, then trim
 GUARD_T0 = True              # restrict t0 search so a full PRE/POST window fits
+T0_SETTLE_MS = 200           # first 200 ms excluded from the onset search (filter start-up transient)
 MIN_ROI_ELECTRODES = 4       # ROIs with fewer contact electrodes are skipped (reported)
 
 GP_BAND = None               # None = full band; e.g. (2.0, 40.0) wideband
@@ -184,14 +185,14 @@ def load_roi_definitions(roi_csv):
 # ============================================================
 # SIGNAL
 # ============================================================
-def find_t0_chunked(dset, mask_idx, pre_s, post_s, chunk=CHUNK_SIZE, guard=GUARD_T0):
+def find_t0_chunked(dset, mask_idx, pre_s, post_s, chunk=CHUNK_SIZE, guard=GUARD_T0, settle_s=0):
     n_ch, T = dset.shape
     score = np.zeros(T)
     for j0 in range(0, len(mask_idx), chunk):
         X = dset[mask_idx[j0:j0 + chunk], :].astype(np.float32)
         score += np.abs(X).sum(0)
-    if guard:                       # only allow t0 where a full window fits
-        lo, hi = pre_s, T - post_s
+    if guard:                       # only allow t0 where a full window fits, after the filter settles
+        lo, hi = max(pre_s, settle_s), T - post_s
         if hi > lo:
             m = np.full(T, -np.inf)
             m[lo:hi] = score[lo:hi]
@@ -675,7 +676,7 @@ def main():
             dt = 1000.0 / fs
             T = d_lfp.shape[1]
             pre_s, post_s, pad = int(round(PRE_MS/dt)), int(round(POST_MS/dt)), int(round(PAD_MS/dt))
-            t0 = find_t0_chunked(d_lfp, mask_idx, pre_s + pad, post_s + pad)
+            t0 = find_t0_chunked(d_lfp, mask_idx, pre_s + pad, post_s + pad, settle_s=int(round(T0_SETTLE_MS / dt)))
             w0 = max(0, t0 - pre_s - pad); w1 = min(T, t0 + post_s + pad + 1)
             win = read_window_chunked(d_lfp, w0, w1, CHUNK_SIZE)
             print(f"[INFO] fs={fs:.0f}Hz t0={t0} window[{w0}:{w1}] ({w1-w0} samp) of T={T}")

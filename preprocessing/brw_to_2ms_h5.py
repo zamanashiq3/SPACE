@@ -63,7 +63,7 @@ from dataclasses import dataclass
 import h5py
 import numpy as np
 from tqdm import tqdm
-from scipy.signal import butter, iirnotch, tf2sos, sosfilt
+from scipy.signal import butter, iirnotch, tf2sos, sosfilt, sosfilt_zi
 from scipy.ndimage import gaussian_filter
 
 
@@ -432,7 +432,7 @@ def process_one_brw(brw_path, mask_path, out_dir, cfg: Config):
             gmeta.attrs["dx_um"] = cfg.dx_um
             gmeta.attrs["drug"] = extract_drug_name(base)
             gmeta.attrs["genotype"] = extract_genotype(base)
-            gmeta.attrs["filter"] = "streaming causal sosfilt: notch + bandpass"
+            gmeta.attrs["filter"] = "streaming causal sosfilt: notch + bandpass (zi = sosfilt_zi * first frame)"
             gmeta.attrs["notch_hz"] = cfg.notch_hz
             gmeta.attrs["bandpass_hz"] = (cfg.lfp_low_hz, cfg.lfp_high_hz)
 
@@ -465,7 +465,12 @@ def process_one_brw(brw_path, mask_path, out_dir, cfg: Config):
                 full[:, active_idx] = active
                 full *= (maxv / (2 ** bit_depth))
 
-                # streaming filter: [time, channel]
+                # streaming filter: [time, channel]. On the first chunk the filter state is set
+                # to the steady-state response to the first frame (sosfilt_zi * x[0]) so the
+                # causal cascade does not start from zero and produce a large step transient in
+                # the first milliseconds (which would otherwise dominate every t0 search).
+                if i == 0:
+                    zi = sosfilt_zi(sos)[:, :, None] * full[0][None, None, :]
                 filt, zi = sosfilt(sos, full, axis=0, zi=zi)
                 lfp_tyx = filt.astype(np.float32).reshape(n, cfg.H, cfg.W)
                 csd_tyx = vectorized_csd(lfp_tyx, dx_um=cfg.dx_um, sigma=cfg.gaussian_sigma)

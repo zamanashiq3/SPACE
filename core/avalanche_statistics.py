@@ -113,6 +113,7 @@ CHUNK_T             = 2000   # 2000 bins = 4 sec at 2 ms
 MAX_FILES           = 0      # 0 = all
 USE_MASK_FOR_T0     = True
 T0_SEARCH_MS        = 2000.0
+T0_SETTLE_MS        = 200.0    # first 200 ms excluded from the onset search (causal-filter start-up transient)
 BASELINE_NOISE_MS   = 500.0
 REFRACTORY_MS       = 4.0
 NEG_THRESH_SIGMA    = 3.0
@@ -594,7 +595,7 @@ def process_one_file(h5_path):
         ch_idx_for_t0 = mask_idx if USE_MASK_FOR_T0 else np.arange(H * W, dtype=int)
         t0, t0_score = find_t0_streaming(
             csd_dset,
-            t_start=0,
+            t_start=int(round(T0_SETTLE_MS / dt_ms)),   # skip the filter start-up transient
             t_end=t0_end,
             chunk_T=CHUNK_T,
             use_ch_idx=ch_idx_for_t0,

@@ -127,6 +127,7 @@ EPS = 1e-12
 REGIONS = {"Ctx": ["M1", "M2", "S1"], "Hippo": ["CA1", "CA3", "DG"]}
 ROI_ORDER = ["M1", "M2", "S1", "CA1", "CA3", "DG"]
 TIME_CHUNK = 5000          # samples per streamed chunk for the t0 search
+SETTLE_MS = 200.0          # first 200 ms excluded from the onset search (filter start-up transient)
 CH_BLOCK = 512             # channels per block read
 SAMPEN_BLOCK = 256         # template rows per block in the sample-entropy pair count
 FIG_DPI = 300
@@ -223,7 +224,7 @@ def roi_electrodes(box: Tuple[int, int, int, int], mask: np.ndarray) -> np.ndarr
     return np.asarray(idx, dtype=int)
 
 
-def find_t0_chunked(dset: h5py.Dataset, idx: np.ndarray, pre: int, post: int,
+def find_t0_chunked(dset: h5py.Dataset, idx: np.ndarray, pre: int, post: int, fs: float = 10000.0,
                     time_chunk: int = TIME_CHUNK, ch_block: int = CH_BLOCK) -> Tuple[int, np.ndarray]:
     """argmax_t sum |LFP| over electrodes `idx` (streamed), restricted so the -pre..+post epoch fits."""
     n_ch, T = dset.shape
@@ -237,7 +238,7 @@ def find_t0_chunked(dset: h5py.Dataset, idx: np.ndarray, pre: int, post: int,
                 continue
             X = dset[c0:c1, t0:t1]
             score[t0:t1] += np.abs(X[sel]).sum(axis=0)
-    lo, hi = pre, T - post
+    lo, hi = max(pre, int(round(SETTLE_MS * fs / 1000.0))), T - post
     if hi <= lo:
         warnings.warn("recording shorter than the epoch: t0 search unguarded")
         return int(np.argmax(score)), score
@@ -471,7 +472,7 @@ def process_recording(h5_path: Path, group: str, args, mask_dir: Path, roi_dir: 
         idx_mask = np.flatnonzero(mask.ravel())
         print(f"[REC] {group}/{h5_path.name}: fs={fs:g} Hz, T={lfp.shape[1]}, slice={slice_id}, cond={cond}, "
               f"mask={mask.sum()} el ({mask_src}), {len(rois)} ROIs")
-        t0, _ = find_t0_chunked(lfp, idx_mask, pre, post)
+        t0, _ = find_t0_chunked(lfp, idx_mask, pre, post, fs)
         s0, s1 = t0 - pre, t0 + post + 1
         t0_ms = t0 * 1000.0 / fs
         print(f"       t0 = {t0} samples ({t0_ms:.1f} ms); epoch {t_ms[0]:g}..{t_ms[-1]:g} ms ({t_ms.size} samples)")

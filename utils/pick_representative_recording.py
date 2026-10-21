@@ -41,7 +41,8 @@ USE_MASK = True
 # ============================================================
 # STREAMING CHUNK
 # ============================================================
-CHUNK_T = 2000   # time chunk in samples (for 2ms streams, 2000 ~ 4s)
+CHUNK_T = 2000   # time chunk in samples
+T0_SETTLE_MS = 200.0   # skip the first N ms of the onset search (causal-filter start-up transient)
 
 # ============================================================
 # Representative frame extraction
@@ -115,7 +116,7 @@ def robust_mad_z(x, eps=1e-12):
     z = (x - med) / (1.4826 * mad)
     return z, med, mad
 
-def find_t0_argmax_stream(dset, t_end, chunk_T=2000, use_ch_idx=None):
+def find_t0_argmax_stream(dset, t_end, chunk_T=2000, use_ch_idx=None, t_start=0):
     """
     t0 = argmax_t mean(|CSD|) within [0, t_end)
     Streaming to avoid big loads.
@@ -125,7 +126,7 @@ def find_t0_argmax_stream(dset, t_end, chunk_T=2000, use_ch_idx=None):
     best_t = 0
     best_v = -np.inf
 
-    for a in range(0, t_end, chunk_T):
+    for a in range(int(t_start), t_end, chunk_T):
         b = min(t_end, a + chunk_T)
         X = dset[:, a:b] if use_ch_idx is None else dset[use_ch_idx, a:b]
         score = np.mean(np.abs(X), axis=0)
@@ -267,7 +268,7 @@ def main():
                     use_idx = mask_flat_indices(mask2d) if mask2d is not None else None
 
                     t_end = int(round(min(d.shape[1], SEARCH_MS / dt_ms)))
-                    t0, _ = find_t0_argmax_stream(d, t_end=t_end, chunk_T=CHUNK_T, use_ch_idx=use_idx)
+                    t0, _ = find_t0_argmax_stream(d, t_end=t_end, chunk_T=CHUNK_T, use_ch_idx=use_idx, t_start=int(round(T0_SETTLE_MS / dt_ms)))
 
                     vec = extract_median_frame(d, t0=t0, dt_ms=dt_ms, window_ms=FRAME_WINDOW_MS, use_ch_idx=use_idx)
                     frame_hw = vec.reshape(H, W).astype(np.float32)

@@ -455,8 +455,14 @@ def plot_distance_decay_phi_corr(P_all, H, W, out_dir, max_pairs=20000):
     idx_i = rng.integers(0, N-1, size=pick)
     idx_j = idx_i + 1 + rng.integers(0, N - idx_i - 1)
     ds = np.linalg.norm(coords[idx_i]-coords[idx_j], axis=1)
-    num = np.sum(X[idx_i]*X[idx_j], axis=1)
-    den = np.sqrt(np.sum(X[idx_i]*X[idx_i],axis=1) * np.sum(X[idx_j]*X[idx_j],axis=1) + 1e-12)
+    # pairs are processed in blocks so memory stays ~ block x T (not pick x T)
+    xx = np.sum(X * X, axis=1)
+    num = np.empty(pick, np.float64)
+    blk = max(1, int(2e8 // max(1, X.shape[1])))
+    for a in range(0, pick, blk):
+        b = min(pick, a + blk)
+        num[a:b] = np.sum(X[idx_i[a:b]] * X[idx_j[a:b]], axis=1)
+    den = np.sqrt(xx[idx_i] * xx[idx_j] + 1e-12)
     rs = np.where(den>0, num/den, 0.0)
     bins = np.linspace(0, np.sqrt(H*H+W*W), 30)
     digit = np.digitize(ds, bins)
@@ -712,7 +718,7 @@ def process_h5_allphase(h5_path, out_root,
         pbar.update(1)
 
         # --- Coherogram ---
-        Ctime = local_circular_corr_over_time(P_all, H, W, win_s=COH_WIN_SEC, fs_eff=fs_eff)
+        Ctime, Ccentres = local_circular_corr_over_time(P_all, H, W, win_s=COH_WIN_SEC, fs_eff=fs_eff)
         if np.isfinite(Ctime).any():
             C_med = np.nanmedian(Ctime, axis=0)
             C_mean_trace = np.nanmean(Ctime.reshape(Ctime.shape[0], -1), axis=1)
@@ -722,9 +728,8 @@ def process_h5_allphase(h5_path, out_root,
 
         plot_scalar_map(C_med, f"Local circular ϕ-corr (median, win={COH_WIN_SEC}s)",
                         os.path.join(figs, "phi_local_corr_median"), vmin=0, vmax=1, clabel="corr")
-        tx = np.arange(len(C_mean_trace))/fs_eff
-        x_plot, y_plot = _ds_plot(tx, C_mean_trace, max_pts=MAX_PTS_PLOT,
-                                  smooth_win=int(max(1, fs_eff*SMOOTH_SEC)))
+        tx = Ccentres / fs_eff
+        x_plot, y_plot = _ds_plot(tx, C_mean_trace, max_pts=MAX_PTS_PLOT, smooth_win=0)
         fig, ax = plt.subplots(figsize=(9,2.3))
         ax.plot(x_plot, y_plot, lw=0.8); ax.set_ylim(0,1)
         ax.set_xlabel("time (s)"); ax.set_ylabel("⟨local ϕ-corr⟩")
@@ -750,10 +755,11 @@ def local_circular_corr_over_time(P_all, H, W, win_s, fs_eff):
     Wn = max(1, int(win_s * fs_eff))
     if Wn > T: Wn = T
     P = P_all.reshape(H, W, T)
-    out = np.zeros((T, H, W), dtype=np.float32)
     step = max(1, Wn // 4)
+    starts = list(range(0, T - Wn + 1, step))
+    out = np.zeros((len(starts), H, W), dtype=np.float32)   # one map per window (memory-safe)
 
-    for t0 in tqdm(range(0, T - Wn + 1, step), desc="local ϕ-corr(time)", leave=False):
+    for k, t0 in enumerate(tqdm(starts, desc="local ϕ-corr(time)", leave=False)):
         t1 = t0 + Wn
         block = P[:, :, t0:t1]
         if not np.isfinite(block).any():
@@ -777,8 +783,8 @@ def local_circular_corr_over_time(P_all, H, W, win_s, fs_eff):
         C = np.zeros((H, W), np.float32)
         ok = den > 0
         C[ok] = num[ok] / den[ok]
-        out[t0:t1, :, :] = C[None, ...]
-    return out  # (T,H,W)
+        out[k] = C
+    return out, np.asarray(starts) + Wn // 2  # (n_windows,H,W), window-centre sample index
 
 # ================== SNAPSHOTS PICKER ==================
 def pick_event_frames(R, fs_eff, n_peaks=SNAP_PKS, pad_s=SNAP_PAD_SEC):
